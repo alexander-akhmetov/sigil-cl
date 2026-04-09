@@ -1,0 +1,46 @@
+(in-package :sigil-cl)
+
+(defclass sigil-config ()
+  (;; Generation export
+   (generation-endpoint :initarg :generation-endpoint :reader config-generation-endpoint :initform nil)
+   (generation-enabled  :initarg :generation-enabled  :reader config-generation-enabled  :initform nil)
+   ;; Trace export
+   (traces-endpoint     :initarg :traces-endpoint     :reader config-traces-endpoint     :initform nil)
+   (traces-enabled      :initarg :traces-enabled      :reader config-traces-enabled      :initform nil)
+   (traces-forward-auth :initarg :traces-forward-auth :reader config-traces-forward-auth :initform t)
+   ;; Auth
+   (auth-mode     :initarg :auth-mode     :reader config-auth-mode     :initform :none)
+   (auth-user     :initarg :auth-user     :reader config-auth-user     :initform nil)
+   (auth-password :initarg :auth-password :reader config-auth-password :initform nil)
+   (tenant-id     :initarg :tenant-id     :reader config-tenant-id     :initform nil)
+   ;; Batching
+   (batch-size         :initarg :batch-size         :reader config-batch-size         :initform 20)
+   (flush-interval-sec :initarg :flush-interval-sec :reader config-flush-interval-sec :initform 5)
+   (queue-max          :initarg :queue-max          :reader config-queue-max          :initform 500)
+   (trace-queue-max    :initarg :trace-queue-max    :reader config-trace-queue-max    :initform nil)
+   ;; HTTP
+   (export-timeout-sec  :initarg :export-timeout-sec  :reader config-export-timeout-sec  :initform 10)
+   (max-retries         :initarg :max-retries         :reader config-max-retries         :initform 5)
+   (initial-backoff-sec :initarg :initial-backoff-sec :reader config-initial-backoff-sec :initform 0.1)
+   (max-backoff-sec     :initarg :max-backoff-sec     :reader config-max-backoff-sec     :initform 5.0)
+   ;; Content capture
+   (content-capture-mode :initarg :content-capture-mode :reader config-content-capture-mode
+                         :initform :metadata-only)
+   ;; Service identity
+   (service-name    :initarg :service-name    :reader config-service-name    :initform "unknown")
+   (service-version :initarg :service-version :reader config-service-version :initform nil)
+   ;; User identity
+   (user-id :initarg :user-id :reader config-user-id :initform nil)
+   (tags    :initarg :tags    :reader config-tags    :initform nil)
+   ;; Callbacks
+   (log-fn     :initarg :log-fn     :reader config-log-fn     :initform nil)
+   (metrics-fn :initarg :metrics-fn :reader config-metrics-fn :initform nil)
+   ;; Testing
+   (http-fn :initarg :http-fn :reader config-http-fn :initform nil)))
+
+(defun effective-trace-queue-max (config)
+  "Return trace queue max, falling back to queue-max."
+  (or (config-trace-queue-max config) (config-queue-max config)))
+
+(defun make-config (&rest args)
+  (apply #'make-instance 'sigil-config args))

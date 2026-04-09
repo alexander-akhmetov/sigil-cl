@@ -1,0 +1,112 @@
+(in-package :sigil-cl)
+
+(defconstant +sdk-name+ "sigil-cl")
+
+;;; --- Attribute helpers ---
+
+(defun otel-string-attr (key value)
+  "Build an OTLP string attribute."
+  (jobj "key" key "value" (jobj "stringValue" value)))
+
+(defun otel-int-attr (key value)
+  "Build an OTLP int attribute (value as string per OTLP JSON)."
+  (jobj "key" key "value" (jobj "intValue" (format nil "~d" value))))
+
+(defun otel-bool-attr (key value)
+  "Build an OTLP bool attribute."
+  (jobj "key" key "value" (jobj "boolValue" (if value t nil))))
+
+(defun otel-string-array-attr (key values)
+  "Build an OTLP string array attribute."
+  (jobj "key" key
+        "value" (jobj "arrayValue"
+                      (jobj "values" (coerce (mapcar (lambda (v)
+                                                       (jobj "stringValue" v))
+                                                     values)
+                                             'vector)))))
+
+;;; --- Span building ---
+
+(defun build-span (&key trace-id span-id parent-span-id name kind
+                        start-time-unix-nano end-time-unix-nano
+                        attributes status-code status-message)
+  "Build an OTLP-compatible span JSON object.
+KIND: 1=INTERNAL, 3=CLIENT. STATUS-CODE: 1=OK, 2=ERROR."
+  (let ((span (jobj "traceId" trace-id
+                     "spanId" span-id
+                     "name" name
+                     "kind" kind
+                     "startTimeUnixNano" (or start-time-unix-nano "0")
+                     "endTimeUnixNano" (or end-time-unix-nano "0")
+                     "attributes" (or attributes (vector))
+                     "status" (jobj "code" (or status-code 1)
+                                    "message" (or status-message "")))))
+    (when parent-span-id
+      (setf (gethash "parentSpanId" span) parent-span-id))
+    span))
+
+(defun build-otlp-payload (spans service-name service-version)
+  "Wrap spans in the OTLP resourceSpans envelope."
+  (let ((resource-attrs (list (otel-string-attr "service.name" (or service-name "unknown")))))
+    (when service-version
+      (push (otel-string-attr "service.version" service-version) resource-attrs))
+    (jobj "resourceSpans"
+          (vector
+           (jobj "resource" (jobj "attributes" (coerce (nreverse resource-attrs) 'vector))
+                 "scopeSpans"
+                 (vector
+                  (jobj "scope" (jobj "name" +sdk-name+)
+                        "spans" (coerce spans 'vector))))))))
+
+;;; --- Error classification ---
+
+(defun extract-http-status (error-string)
+  "Extract HTTP status code from an error string. Returns integer or NIL."
+  (when (stringp error-string)
+    (let ((pos (search "status=" error-string)))
+      (when pos
+        (let ((start (+ pos 7)))
+          (when (< (+ start 2) (length error-string))
+            (handler-case (parse-integer (subseq error-string start
+                                                  (min (+ start 3) (length error-string)))
+                                          :junk-allowed t)
+              (error () nil))))))))
+
+(defun classify-error (error-string)
+  "Classify an error string into a Sigil error category."
+  (when (null error-string) (return-from classify-error nil))
+  (let ((status (extract-http-status error-string))
+        (lower (string-downcase error-string)))
+    (cond
+      ((and status (= status 429)) "rate_limit")
+      ((and status (or (= status 401) (= status 403))) "auth_error")
+      ((and status (>= status 500)) "server_error")
+      ((and status (= status 408)) "timeout")
+      ((and status (>= status 400)) "client_error")
+      ((or (search "timeout" lower) (search "timed out" lower)) "timeout")
+      ((search "retry attempts exhausted" lower) "server_error")
+      (t "sdk_error"))))
+
+;;; --- Common span attributes ---
+
+(defun common-span-attrs (config &key provider model agent-name agent-version
+                                      conversation-id)
+  "Build list of common OTLP attributes for Sigil spans."
+  (let ((attrs nil))
+    (push (otel-string-attr "sigil.sdk.name" +sdk-name+) attrs)
+    (when (and conversation-id (stringp conversation-id) (plusp (length conversation-id)))
+      (push (otel-string-attr "gen_ai.conversation.id" conversation-id) attrs))
+    (when (and agent-name (plusp (length agent-name)))
+      (push (otel-string-attr "gen_ai.agent.name" agent-name) attrs))
+    (when (and agent-version (plusp (length agent-version)))
+      (push (otel-string-attr "gen_ai.agent.version" agent-version) attrs))
+    (when (and provider (plusp (length provider)))
+      (push (otel-string-attr "gen_ai.provider.name" provider) attrs))
+    (when (and model (plusp (length model)))
+      (push (otel-string-attr "gen_ai.request.model" model) attrs))
+    (let ((uid (config-user-id config)))
+      (when uid
+        (let ((uid-str (princ-to-string uid)))
+          (when (plusp (length uid-str))
+            (push (otel-string-attr "user.id" uid-str) attrs)))))
+    attrs))
