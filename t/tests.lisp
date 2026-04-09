@@ -348,14 +348,14 @@
       (let ((rec (start-generation client :mode :sync
                                           :model-provider "test" :model-name "m"
                                           :metadata '(("my.key" . "my-value")
-                                                      ("framework" . "astra-l")))))
+                                                      ("framework" . "my-framework")))))
         (recorder-end rec)
         (let ((gen (first (sigil-cl::queue-drain-all
                            (sigil-cl::client-generation-queue client)))))
           (check "caller metadata: my.key present"
                  (equal (jget* gen "metadata" "my.key") "my-value"))
           (check "caller metadata: framework present"
-                 (equal (jget* gen "metadata" "framework") "astra-l"))
+                 (equal (jget* gen "metadata" "framework") "my-framework"))
           (check "caller metadata: sdk.name still present"
                  (equal (jget* gen "metadata" "sigil.sdk.name") "sigil-cl")))))
 

@@ -1,9 +1,9 @@
 .PHONY: test load clean
 
-VENDOR := ../astra-l/vendor/bundle.lisp
+QUICKLISP_HOME ?= $(HOME)/quicklisp
 XDG_CACHE_HOME := $(CURDIR)/.cache
 SBCL := XDG_CACHE_HOME=$(XDG_CACHE_HOME) sbcl --dynamic-space-size 2048 --noinform --no-userinit --non-interactive
-LOAD := --load $(VENDOR) --eval '(push (truename ".") asdf:*central-registry*)'
+LOAD := --load $(QUICKLISP_HOME)/setup.lisp --eval '(push (truename ".") asdf:*central-registry*)'
 
 test:
 	@$(SBCL) $(LOAD) \
