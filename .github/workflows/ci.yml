@@ -23,6 +23,14 @@ jobs:
             --eval '(quicklisp-quickstart:install :path #P"~/quicklisp/")' \
             --eval '(quit)'
 
+      - name: Install dependencies
+        run: |
+          sbcl --noinform --no-userinit --non-interactive \
+            --load ~/quicklisp/setup.lisp \
+            --eval '(push (truename ".") asdf:*central-registry*)' \
+            --eval '(ql:quickload :sigil-cl :silent t)' \
+            --eval '(quit)'
+
       - name: Load system and check for warnings
         run: |
           sbcl --dynamic-space-size 2048 --noinform --no-userinit --non-interactive \
