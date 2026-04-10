@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    name: Lint (SBCL warnings)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SBCL
+        run: sudo apt-get update && sudo apt-get install -y sbcl
+
+      - name: Install Quicklisp
+        run: |
+          curl -fsSL https://beta.quicklisp.org/quicklisp.lisp -o /tmp/quicklisp.lisp
+          sbcl --non-interactive \
+            --load /tmp/quicklisp.lisp \
+            --eval '(quicklisp-quickstart:install :path #P"~/quicklisp/")' \
+            --eval '(quit)'
+
+      - name: Load system and check for warnings
+        run: |
+          sbcl --dynamic-space-size 2048 --noinform --no-userinit --non-interactive \
+            --load ~/quicklisp/setup.lisp \
+            --eval '(push (truename ".") asdf:*central-registry*)' \
+            --eval '(handler-bind ((warning (lambda (c)
+                        (format *error-output* "~&WARNING: ~a~%" c)
+                        (muffle-warning c))))
+                      (asdf:load-system :sigil-cl))' \
+            --eval '(format t "~%sigil-cl loaded OK~%")'
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SBCL
+        run: sudo apt-get update && sudo apt-get install -y sbcl
+
+      - name: Install Quicklisp
+        run: |
+          curl -fsSL https://beta.quicklisp.org/quicklisp.lisp -o /tmp/quicklisp.lisp
+          sbcl --non-interactive \
+            --load /tmp/quicklisp.lisp \
+            --eval '(quicklisp-quickstart:install :path #P"~/quicklisp/")' \
+            --eval '(quit)'
+
+      - name: Run tests
+        run: make test
