@@ -1,6 +1,6 @@
 # sigil-cl
 
-Common Lisp SDK for [Grafana Sigil](https://grafana.com/docs/grafana-cloud/ai/sigil/) AI observability.
+Common Lisp SDK for [Grafana Sigil](https://github.com/grafana/sigil-sdk) AI observability.
 
 Sigil captures LLM generations, tool executions, and embeddings from your application and exports them as structured telemetry — generation payloads over HTTP and traces via OTLP.
 
