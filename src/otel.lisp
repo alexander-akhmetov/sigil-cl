@@ -1,6 +1,6 @@
 (in-package :sigil-cl)
 
-(defconstant +sdk-name+ "sigil-cl")
+(defvar +sdk-name+ "sigil-cl")
 
 ;;; --- Attribute helpers ---
 

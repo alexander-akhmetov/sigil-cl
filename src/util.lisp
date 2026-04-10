@@ -2,9 +2,8 @@
 
 ;;; --- Epoch constant ---
 
-(defconstant +unix-epoch-universal+
-  (if (boundp '+unix-epoch-universal+) +unix-epoch-universal+
-      (encode-universal-time 0 0 0 1 1 1970 0))
+(defvar +unix-epoch-universal+
+  (encode-universal-time 0 0 0 1 1 1970 0)
   "Universal time at Unix epoch (1970-01-01T00:00:00Z).")
 
 ;;; --- Timestamps ---
