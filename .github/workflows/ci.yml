@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+env:
+  QUICKLISP_HOME: ~/quicklisp
+
 jobs:
   lint:
     name: Lint (SBCL warnings)
@@ -15,16 +18,13 @@ jobs:
       - name: Install SBCL
         run: sudo apt-get update && sudo apt-get install -y sbcl
 
-      - name: Install Quicklisp
+      - name: Install Quicklisp and dependencies
         run: |
           curl -fsSL https://beta.quicklisp.org/quicklisp.lisp -o /tmp/quicklisp.lisp
           sbcl --non-interactive \
             --load /tmp/quicklisp.lisp \
             --eval '(quicklisp-quickstart:install :path #P"~/quicklisp/")' \
             --eval '(quit)'
-
-      - name: Install dependencies
-        run: |
           sbcl --noinform --no-userinit --non-interactive \
             --load ~/quicklisp/setup.lisp \
             --eval '(push (truename ".") asdf:*central-registry*)' \
@@ -51,12 +51,17 @@ jobs:
       - name: Install SBCL
         run: sudo apt-get update && sudo apt-get install -y sbcl
 
-      - name: Install Quicklisp
+      - name: Install Quicklisp and dependencies
         run: |
           curl -fsSL https://beta.quicklisp.org/quicklisp.lisp -o /tmp/quicklisp.lisp
           sbcl --non-interactive \
             --load /tmp/quicklisp.lisp \
             --eval '(quicklisp-quickstart:install :path #P"~/quicklisp/")' \
+            --eval '(quit)'
+          sbcl --noinform --no-userinit --non-interactive \
+            --load ~/quicklisp/setup.lisp \
+            --eval '(push (truename ".") asdf:*central-registry*)' \
+            --eval '(ql:quickload :sigil-cl/t :silent t)' \
             --eval '(quit)'
 
       - name: Run tests
