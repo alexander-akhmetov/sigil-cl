@@ -17,14 +17,6 @@ Sigil captures LLM generations, tool executions, and embeddings from your applic
 
 ## Installation
 
-sigil-cl depends on:
-
-- [dexador](https://github.com/fukamachi/dexador) — HTTP client
-- [com.inuoe.jzon](https://github.com/Zulu-Inuoe/jzon) — JSON
-- [bordeaux-threads](https://github.com/sionescu/bordeaux-threads) — threading
-- [alexandria](https://github.com/sharplispers/alexandria) — utilities
-- [cl-base64](https://github.com/sharplispers/cl-base64) — base64 encoding
-
 Add `sigil-cl` to your ASDF system definition:
 
 ```lisp
@@ -37,9 +29,9 @@ Add `sigil-cl` to your ASDF system definition:
 (defvar *client*
   (sigil-cl:make-client
    (sigil-cl:make-config
-    :generation-endpoint "https://sigil.grafana.net/api/v1/generations:export"
+    :generation-endpoint "https://{your-sigil-host}/api/v1/generations:export"
     :generation-enabled t
-    :traces-endpoint "https://sigil.grafana.net/v1/traces"
+    :traces-endpoint "https://{your-otel-host}/v1/traces"
     :traces-enabled t
     :auth-mode :basic
     :auth-password "glc_..."
